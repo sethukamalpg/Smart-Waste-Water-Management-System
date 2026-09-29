@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Municipal Financial Performance & P&L Statement - AquaSCADA')}">
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: navbar('profit-loss')}"></div>
+
+<div class="scada-main-content">
+
+    <!-- Top Utility Header -->
+    <header class="scada-top-header">
+        <ol class="scada-breadcrumb">
+            <li><a th:href="@{/}"><i class="bi bi-house-door me-1"></i>AquaSCADA</a></li>
+            <li>/</li>
+            <li><span>Fiscal Oversight</span></li>
+            <li>/</li>
+            <li class="scada-breadcrumb-active">Profit & Loss Statement</li>
+        </ol>
+        <div class="scada-header-actions">
+            <span class="live-timestamp-chip">
+                <i class="bi bi-clock-history text-primary"></i>
+                <span id="scadaLiveClock">2026-09-27 16:45:00</span>
+            </span>
+            <a th:href="@{/budget}" class="btn-action-pill">
+                <i class="bi bi-pie-chart text-warning"></i> Budget Monitoring
+            </a>
+            <a th:href="@{/invoices}" class="btn-action-pill">
+                <i class="bi bi-receipt"></i> Customer Invoices
+            </a>
+            <a th:href="@{/reports/profit-loss}" class="btn-action-pill" title="Refresh">
+                <i class="bi bi-arrow-repeat"></i>
+            </a>
+        </div>
+    </header>
+
+    <main class="container-fluid px-4 py-4">
+
+        <!-- Page Header -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+            <div>
+                <h1 class="page-title mb-1">Municipal Financial Statement & P&L Position</h1>
+                <p class="page-subtitle mb-0">Consolidated treatment revenues, environmental fine proceeds, and chemical procurement expenditure</p>
+            </div>
+            <div>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 font-mono">
+                    <i class="bi bi-calendar-check me-1"></i>Current Fiscal Year: 2026-2027
+                </span>
+            </div>
+        </div>
+
+        <!-- 4 High-Level Financial KPI Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-scada-kpi">
+                    <div class="kpi-header">
+                        <div>
+                            <div class="kpi-title">Gross Operating Revenue</div>
+                            <div class="kpi-value font-mono text-primary" th:text="${'₹' + #numbers.formatDecimal(pnl.totalRevenue, 1, 2)}">₹0.00</div>
+                        </div>
+                        <div class="kpi-icon-box icon-box-primary">
+                            <i class="bi bi-currency-rupee"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-footer">
+                        <span>Services & Compliance Surcharges</span>
+                        <span class="badge bg-primary-subtle text-primary font-mono">Revenue</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-scada-kpi">
+                    <div class="kpi-header">
+                        <div>
+                            <div class="kpi-title">Chemical & Operating Expenses</div>
+                            <div class="kpi-value font-mono text-danger" th:text="${'₹' + #numbers.formatDecimal(pnl.totalExpenses, 1, 2)}">₹0.00</div>
+                        </div>
+                        <div class="kpi-icon-box icon-box-rose">
+                            <i class="bi bi-droplet-half"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-footer">
+                        <span>Chemical Reagents (Account 5010)</span>
+                        <span class="badge bg-danger-subtle text-danger font-mono">Expenses</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-scada-kpi">
+                    <div class="kpi-header">
+                        <div>
+                            <div class="kpi-title">Net Operating Surplus</div>
+                            <div class="kpi-value font-mono"
+                                 th:classappend="${pnl.netProfitOrLoss >= 0 ? 'text-success' : 'text-danger'}"
+                                 th:text="${'₹' + #numbers.formatDecimal(pnl.netProfitOrLoss, 1, 2)}">₹0.00</div>
+                        </div>
+                        <div class="kpi-icon-box"
+                             th:classappend="${pnl.netProfitOrLoss >= 0 ? 'icon-box-emerald' : 'icon-box-rose'}">
+                            <i class="bi" th:classappend="${pnl.netProfitOrLoss >= 0 ? 'bi-graph-up-arrow' : 'bi-graph-down-arrow'}"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-footer">
+                        <span>Net Operating Margin</span>
+                        <span class="badge bg-success-subtle text-success font-mono">Solvent</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-scada-kpi">
+                    <div class="kpi-header">
+                        <div>
+                            <div class="kpi-title">Operating Margin %</div>
+                            <div class="kpi-value font-mono text-warning" th:text="${pnl.profitMarginPercent + '%'}">0.0%</div>
+                        </div>
+                        <div class="kpi-icon-box icon-box-amber">
+                            <i class="bi bi-percent"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-footer">
+                        <span>Return on Effluent Treatment Operations</span>
+                        <span class="badge bg-warning-subtle text-warning font-mono">Margin</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <!-- Detailed P&L Statement -->
+            <div class="col-lg-7">
+                <div class="card h-100">
+                    <div class="card-header bg-white py-3 border-bottom">
+                        <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                            <i class="bi bi-file-earmark-text text-primary"></i> Statement of Profit & Loss (Income Statement)
+                        </h5>
+                        <p class="text-muted small mb-0">Double-entry accounting integration with General Ledger (Chart of Accounts)</p>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-scada">
+                            <thead>
+                            <tr>
+                                <th>Account Category / General Ledger Line</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr class="fw-bold bg-light">
+                                <td colspan="2"><i class="bi bi-arrow-down-right-circle text-success me-1"></i> 1. OPERATING REVENUES</td>
+                            </tr>
+                            <tr>
+                                <td class="ps-4">Effluent Treatment Service Revenue (Account 4010)</td>
+                                <td class="text-end text-success font-mono fw-semibold" th:text="${'₹' + #numbers.formatDecimal(pnl.treatmentServiceRevenue, 1, 2)}">₹0.00</td>
+                            </tr>
+                            <tr>
+                                <td class="ps-4">COD Non-Compliance Fines & Surcharges (Account 4020)</td>
+                                <td class="text-end text-success font-mono fw-semibold" th:text="${'₹' + #numbers.formatDecimal(pnl.complianceSurchargeRevenue, 1, 2)}">₹0.00</td>
+                            </tr>
+                            <tr class="fw-bold bg-light">
+                                <td>TOTAL OPERATING REVENUE</td>
+                                <td class="text-end text-success font-mono fs-6" th:text="${'₹' + #numbers.formatDecimal(pnl.totalRevenue, 1, 2)}">₹0.00</td>
+                            </tr>
+
+                            <tr class="fw-bold bg-light">
+                                <td colspan="2"><i class="bi bi-arrow-up-right-circle text-danger me-1"></i> 2. OPERATING EXPENSES</td>
+                            </tr>
+                            <tr>
+                                <td class="ps-4">Chemical & Reagent Procurement Expenses (Account 5010)</td>
+                                <td class="text-end text-danger font-mono fw-semibold" th:text="${'₹' + #numbers.formatDecimal(pnl.chemicalProcurementExpense, 1, 2)}">₹0.00</td>
+                            </tr>
+                            <tr class="fw-bold bg-light">
+                                <td>TOTAL OPERATING EXPENSES</td>
+                                <td class="text-end text-danger font-mono fs-6" th:text="${'₹' + #numbers.formatDecimal(pnl.totalExpenses, 1, 2)}">₹0.00</td>
+                            </tr>
+
+                            <tr class="fw-bold fs-6 bg-light-subtle">
+                                <td class="text-dark">NET OPERATING INCOME / SURPLUS</td>
+                                <td class="text-end font-mono fs-5"
+                                    th:classappend="${pnl.netProfitOrLoss >= 0 ? 'text-success' : 'text-danger'}"
+                                    th:text="${'₹' + #numbers.formatDecimal(pnl.netProfitOrLoss, 1, 2)}">₹0.00</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Balance Sheet Snapshot -->
+            <div class="col-lg-5">
+                <div class="card h-100">
+                    <div class="card-header bg-white py-3 border-bottom">
+                        <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                            <i class="bi bi-bank text-info"></i> Balance Sheet Position
+                        </h5>
+                        <p class="text-muted small mb-0">Assets, receivables, liabilities, and municipal equity</p>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-scada">
+                            <thead>
+                            <tr>
+                                <th>Balance Sheet Item</th>
+                                <th class="text-end">Balance</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr class="fw-bold bg-light">
+                                <td colspan="2"><i class="bi bi-shield-check text-primary me-1"></i> ASSETS</td>
+                            </tr>
+                            <tr th:each="entry : ${balanceSheet.assetBreakdown}">
+                                <td class="ps-4" th:text="${entry.key}">Cash and Bank</td>
+                                <td class="text-end font-mono fw-semibold text-primary" th:text="${'₹' + #numbers.formatDecimal(entry.value, 1, 2)}">₹0.00</td>
+                            </tr>
+                            <tr class="fw-bold bg-light">
+                                <td>TOTAL ASSETS</td>
+                                <td class="text-end font-mono text-primary fs-6" th:text="${'₹' + #numbers.formatDecimal(balanceSheet.totalAssets, 1, 2)}">₹0.00</td>
+                            </tr>
+
+                            <tr class="fw-bold bg-light">
+                                <td colspan="2"><i class="bi bi-exclamation-circle text-danger me-1"></i> LIABILITIES</td>
+                            </tr>
+                            <tr th:each="entry : ${balanceSheet.liabilityBreakdown}">
+                                <td class="ps-4" th:text="${entry.key}">Accounts Payable</td>
+                                <td class="text-end font-mono fw-semibold text-danger" th:text="${'₹' + #numbers.formatDecimal(entry.value, 1, 2)}">₹0.00</td>
+                            </tr>
+                            <tr class="fw-bold bg-light">
+                                <td>TOTAL LIABILITIES</td>
+                                <td class="text-end font-mono text-danger fs-6" th:text="${'₹' + #numbers.formatDecimal(balanceSheet.totalLiabilities, 1, 2)}">₹0.00</td>
+                            </tr>
+
+                            <tr class="fw-bold fs-6 bg-light-subtle">
+                                <td class="text-dark">NET MUNICIPAL EQUITY / NET WORTH</td>
+                                <td class="text-end font-mono text-success fs-5" th:text="${'₹' + #numbers.formatDecimal(balanceSheet.netWorth, 1, 2)}">₹0.00</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Plant Budgets & Utilization Performance -->
+        <div class="card">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+                <div>
+                    <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                        <i class="bi bi-pie-chart-fill text-warning"></i> Plant Budgets & Utilization Performance
+                    </h5>
+                    <p class="text-muted small mb-0">Fiscal variance against approved annual facility allocations</p>
+                </div>
+                <a th:href="@{/budget}" class="btn-action-pill">
+                    Budget Panel <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table-scada">
+                        <thead>
+                        <tr>
+                            <th>Budget Line</th>
+                            <th>Cost Center</th>
+                            <th>Financial Year</th>
+                            <th>Planned Budget</th>
+                            <th>Actual Incurred</th>
+                            <th>Utilization %</th>
+                            <th>Status</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="b : ${budgetPerformance.items}">
+                            <td class="fw-bold text-dark" th:text="${b.budgetName}">Budget Name</td>
+                            <td><span class="badge bg-light text-primary border font-mono small" th:text="${b.analyticAccountName}">Analytic Account</span></td>
+                            <td class="font-mono text-muted small" th:text="${b.financialYear}">2026-2027</td>
+                            <td class="font-mono text-dark" th:text="${'₹' + #numbers.formatDecimal(b.plannedAmount, 1, 2)}">₹0.00</td>
+                            <td class="font-mono text-danger fw-semibold" th:text="${'₹' + #numbers.formatDecimal(b.actualAmount, 1, 2)}">₹0.00</td>
+                            <td>
+                                <div class="d-flex align-items-center" style="min-width: 140px;">
+                                    <span class="me-2 fw-bold font-mono small" th:text="${b.utilizationPercent + '%'}">0.0%</span>
+                                    <div class="progress-scada flex-grow-1" style="height: 6px;">
+                                        <div class="progress-bar"
+                                             th:classappend="${b.utilizationPercent > 90 ? 'bg-danger' : (b.utilizationPercent > 70 ? 'bg-warning' : 'bg-primary')}"
+                                             role="progressbar"
+                                             th:style="'width: ' + ${b.utilizationPercent} + '%'"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge-status badge-status-compliant" th:text="${b.status}">APPROVED</span>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(budgetPerformance.items)}">
+                            <td colspan="7">
+                                <div class="empty-state-box">
+                                    <div class="empty-state-icon"><i class="bi bi-pie-chart"></i></div>
+                                    <div class="empty-state-title">No Plant Budgets Allocated</div>
+                                    <div class="empty-state-desc">Allocate annual budgets to monitor chemical expenses.</div>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <div th:replace="~{fragments/layout :: footer}"></div>
+</div>
+
+<div th:replace="~{fragments/layout :: scripts}"></div>
+
+</body>
+</html>

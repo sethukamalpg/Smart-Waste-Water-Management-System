@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('AquaSCADA - Executive Operations Dashboard')}">
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: navbar('dashboard')}"></div>
+
+<div class="scada-main-content">
+
+    <!-- Top Utility Header with Breadcrumbs & Live Clock -->
+    <header class="scada-top-header">
+        <ol class="scada-breadcrumb">
+            <li><a th:href="@{/}"><i class="bi bi-house-door me-1"></i>AquaSCADA</a></li>
+            <li>/</li>
+            <li><span>Operations</span></li>
+            <li>/</li>
+            <li class="scada-breadcrumb-active">Executive SCADA Dashboard</li>
+        </ol>
+        <div class="scada-header-actions">
+            <span class="live-timestamp-chip">
+                <i class="bi bi-clock-history text-primary"></i>
+                <span id="scadaLiveClock">Loading clock...</span>
+            </span>
+            <a th:href="@{/telemetry}" class="btn-action-pill btn-action-primary">
+                <i class="bi bi-plus-circle"></i> Ingest Telemetry
+            </a>
+            <a th:href="@{/invoices}" class="btn-action-pill">
+                <i class="bi bi-receipt"></i> Generate Invoice
+            </a>
+            <a th:href="@{/budget}" class="btn-action-pill">
+                <i class="bi bi-pie-chart"></i> Facility Budgets
+            </a>
+            <a th:href="@{/reports/compliance}" class="btn-action-pill">
+                <i class="bi bi-shield-check"></i> Compliance Audit
+            </a>
+            <a th:href="@{/dashboard}" class="btn-action-pill" title="Refresh Live Data">
+                <i class="bi bi-arrow-repeat"></i>
+            </a>
+        </div>
+    </header>
+
+    <main class="container-fluid px-4 py-4">
+
+        <!-- Flash Messages -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-3 mb-4 d-flex align-items-center" role="alert">
+            <i class="bi bi-check-circle-fill me-2 fs-5 text-success"></i>
+            <span class="fw-semibold" th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3 mb-4 d-flex align-items-center" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2 fs-5 text-danger"></i>
+            <span class="fw-semibold" th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Hero Operational Banner (Datadog / SCADA Mission Control) -->
+        <section class="hero-operational-banner">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-emerald-500 text-white rounded-pill px-2 py-1 small fw-bold d-inline-flex align-items-center gap-1">
+                            <span class="live-pulse-dot" style="width: 7px; height: 7px;"></span> SYSTEM ONLINE
+                        </span>
+                        <span class="text-white-50 small font-mono">OCEMS TELEMETRY FEED: 100% OPERATIONAL</span>
+                    </div>
+                    <h1 class="hero-banner-title">
+                        <i class="bi bi-broadcast text-info"></i> Municipal Effluent SCADA &amp; Automated Surcharge Grid
+                    </h1>
+                    <p class="hero-banner-subtitle">
+                        Continuous Online Effluent Monitoring System (OCEMS) enforcing statutory Chemical Oxygen Demand (COD) thresholds, automated municipal surcharge generation, and double-entry ledger settlement.
+                    </p>
+                    <div class="hero-chips-container">
+                        <span class="hero-stat-chip">
+                            <i class="bi bi-shield-check text-emerald-400"></i> Central Plant Limit: <strong>250.0 mg/L</strong>
+                        </span>
+                        <span class="hero-stat-chip">
+                            <i class="bi bi-shield-check text-cyan-400"></i> North ETP Limit: <strong>300.0 mg/L</strong>
+                        </span>
+                        <span class="hero-stat-chip">
+                            <i class="bi bi-currency-rupee text-amber-400"></i> Excess Surcharge: <strong>₹10.00 / COD Unit</strong>
+                        </span>
+                    </div>
+                </div>
+                <div class="col-lg-4 d-none d-lg-flex justify-content-end">
+                    <div class="text-end">
+                        <div class="text-white-50 small mb-1">REAL-TIME HEALTH INDEX</div>
+                        <div class="display-6 fw-extrabold font-mono text-emerald-400" th:text="${complianceMetrics.complianceRatePercent + '%'}">100%</div>
+                        <div class="small text-white-50 mt-1">Discharge Standard Adherence</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Metric KPI Cards (Organized Grid of 4) -->
+        <section class="row g-3 mb-4">
+            <!-- Card 1: Monitored Infrastructure -->
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-scada-kpi">
+                    <div class="kpi-header">
+                        <div>
+                            <div class="kpi-title">Monitored Infrastructure</div>
+                            <div class="kpi-value font-mono">
+                                <span th:text="${totalPlants}">2</span> <span class="fs-6 text-muted fw-normal">Plants</span>
+                            </div>
+                        </div>
+                        <div class="kpi-icon-box icon-box-primary">
+                            <i class="bi bi-buildings"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-footer">
+                        <span>
+                            <i class="bi bi-diagram-3 text-primary me-1"></i>
+                            <span class="fw-bold text-dark font-mono" th:text="${totalFactories}">2</span> Regulated Factories
+                        </span>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1 small">
+                            <i class="bi bi-check2-circle me-1"></i>100% Online
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2: Compliance Health Rate -->
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-scada-kpi">
+                    <div class="kpi-header">
+                        <div>
+                            <div class="kpi-title">Compliance Health Rate</div>
+                            <div class="kpi-value font-mono text-emerald-600" th:text="${complianceMetrics.complianceRatePercent + '%'}">
+                                50.0%
+                            </div>
+                        </div>
+                        <div class="kpi-icon-box icon-box-emerald">
+                            <i class="bi bi-shield-check"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-footer">
+                        <div class="d-flex gap-1">
+                            <span class="badge-status badge-status-compliant" th:text="${complianceMetrics.compliantCount + ' Compliant'}">2 Compliant</span>
+                            <span class="badge-status badge-status-noncompliant" th:text="${complianceMetrics.nonCompliantCount + ' Breaches'}">2 Breaches</span>
+                        </div>
+                        <span class="font-mono small text-muted" th:text="${complianceMetrics.totalReadings + ' logs'}">4 logs</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3: Utility Revenue & Receivables -->
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-scada-kpi">
+                    <div class="kpi-header">
+                        <div>
+                            <div class="kpi-title">Revenue &amp; Receivables</div>
+                            <div class="kpi-value font-mono text-primary" th:text="${'₹' + #numbers.formatDecimal(profitAndLoss.totalRevenue, 1, 2)}">
+                                ₹0.00
+                            </div>
+                        </div>
+                        <div class="kpi-icon-box icon-box-indigo">
+                            <i class="bi bi-currency-rupee"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-footer">
+                        <span>
+                            Services: <strong class="text-dark font-mono" th:text="${'₹' + #numbers.formatDecimal(profitAndLoss.treatmentServiceRevenue, 1, 0)}">₹0</strong>
+                            • Fines: <strong class="text-danger font-mono" th:text="${'₹' + #numbers.formatDecimal(profitAndLoss.complianceSurchargeRevenue, 1, 0)}">₹0</strong>
+                        </span>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1 small font-mono">
+                            <span th:text="${profitAndLoss.profitMarginPercent + '% Margin'}">43.8% Margin</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 4: Chemical Procurement & Budget -->
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-scada-kpi">
+                    <div class="kpi-header">
+                        <div>
+                            <div class="kpi-title">Chemical Costs &amp; Budget</div>
+                            <div class="kpi-value font-mono text-dark" th:text="${budgetPerformance.overallUtilizationPercent + '%'}">
+                                0.0%
+                            </div>
+                        </div>
+                        <div class="kpi-icon-box icon-box-amber">
+                            <i class="bi bi-pie-chart"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="progress-scada mb-2">
+                            <div class="progress-bar"
+                                 th:classappend="${budgetPerformance.overallUtilizationPercent > 90 ? 'bg-danger' : (budgetPerformance.overallUtilizationPercent > 70 ? 'bg-warning' : 'bg-primary')}"
+                                 role="progressbar"
+                                 th:style="'width: ' + ${budgetPerformance.overallUtilizationPercent} + '%;'"></div>
+                        </div>
+                        <div class="d-flex justify-content-between small text-muted font-mono">
+                            <span>Used: <strong class="text-dark" th:text="${'₹' + #numbers.formatDecimal(budgetPerformance.totalActual, 1, 0)}">₹0</strong></span>
+                            <span>Plan: <strong class="text-dark" th:text="${'₹' + #numbers.formatDecimal(budgetPerformance.totalPlanned, 1, 0)}">₹0</strong></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Visual End-to-End Pipeline Stepper (Interactive 5-Step Workflow) -->
+        <section class="pipeline-stepper-card">
+            <div class="pipeline-stepper-header">
+                <div>
+                    <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                        <i class="bi bi-diagram-2-fill text-primary"></i> Automated Regulatory &amp; Billing Pipeline
+                    </h5>
+                    <p class="text-muted small mb-0">Closed-loop SCADA telemetry ingestion to double-entry general ledger settlement</p>
+                </div>
+                <span class="badge bg-light text-dark border px-2 py-1 small font-mono">
+                    <i class="bi bi-arrow-repeat text-primary me-1"></i>Real-Time Event Driven
+                </span>
+            </div>
+            <div class="pipeline-stepper-track">
+                <!-- Step 1 -->
+                <div class="pipeline-step">
+                    <div class="pipeline-step-top">
+                        <span class="pipeline-step-number">1</span>
+                        <i class="bi bi-broadcast pipeline-step-icon"></i>
+                    </div>
+                    <div class="pipeline-step-title">Telemetry Ingest</div>
+                    <div class="pipeline-step-desc">OCEMS IoT sensors record COD, pH, and flow rate from factories.</div>
+                </div>
+                <!-- Step 2 -->
+                <div class="pipeline-step">
+                    <div class="pipeline-step-top">
+                        <span class="pipeline-step-number">2</span>
+                        <i class="bi bi-shield-check pipeline-step-icon text-success"></i>
+                    </div>
+                    <div class="pipeline-step-title">Auto Compliance</div>
+                    <div class="pipeline-step-desc">Instant threshold evaluation against plant statutory COD limits.</div>
+                </div>
+                <!-- Step 3 -->
+                <div class="pipeline-step">
+                    <div class="pipeline-step-top">
+                        <span class="pipeline-step-number">3</span>
+                        <i class="bi bi-calculator pipeline-step-icon text-danger"></i>
+                    </div>
+                    <div class="pipeline-step-title">Surcharge Levied</div>
+                    <div class="pipeline-step-desc">Violations assess ₹10/unit environmental penalty on excess COD.</div>
+                </div>
+                <!-- Step 4 -->
+                <div class="pipeline-step">
+                    <div class="pipeline-step-top">
+                        <span class="pipeline-step-number">4</span>
+                        <i class="bi bi-receipt pipeline-step-icon text-info"></i>
+                    </div>
+                    <div class="pipeline-step-title">Customer Invoice</div>
+                    <div class="pipeline-step-desc">Billing engine aggregates base service fees and pending surcharges.</div>
+                </div>
+                <!-- Step 5 -->
+                <div class="pipeline-step">
+                    <div class="pipeline-step-top">
+                        <span class="pipeline-step-number">5</span>
+                        <i class="bi bi-journal-bookmark-fill pipeline-step-icon text-primary"></i>
+                    </div>
+                    <div class="pipeline-step-title">Double-Entry Ledger</div>
+                    <div class="pipeline-step-desc">Automatic journal entries to A/R (1020), Revenue (4010), &amp; Fines (4020).</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Interactive Data Visualizations Section (Chart.js) -->
+        <section class="row g-4 mb-4">
+            <!-- Left: Real-Time COD Telemetry Stream (2/3 width) -->
+            <div class="col-lg-8">
+                <div class="card h-100">
+                    <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center border-bottom">
+                        <div>
+                            <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                                <i class="bi bi-graph-up-arrow text-primary"></i> Real-Time COD Telemetry Stream
+                            </h5>
+                            <p class="text-muted small mb-0">Discharge Chemical Oxygen Demand (mg/L) vs. Statutory Limit</p>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 mt-2 mt-sm-0">
+                            <span class="badge bg-light text-dark border px-2 py-1 small font-mono">
+                                <span class="live-pulse-dot me-1" style="width:6px; height:6px;"></span> OCEMS Stream
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-body p-3 p-md-4">
+                        <div style="position: relative; width: 100%; height: 280px;">
+                            <canvas id="codTrendChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-light-subtle py-2 px-4 border-top d-flex flex-wrap justify-content-between text-muted small">
+                        <span><i class="bi bi-info-circle me-1 text-primary"></i>Statutory surcharge: <strong>₹10.00 / COD unit</strong> above permissible threshold</span>
+                        <span><i class="bi bi-shield-check text-success me-1"></i>Central Plant: <strong>250 mg/L</strong> | North ETP: <strong>300 mg/L</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Discharge Quality Distribution (1/3 width) -->
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+                        <div>
+                            <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                                <i class="bi bi-pie-chart-fill text-success"></i> Discharge Quality Distribution
+                            </h5>
+                            <p class="text-muted small mb-0">Discharge Compliance vs Violation Ratio</p>
+                        </div>
+                    </div>
+                    <div class="card-body p-3 p-md-4 d-flex flex-column align-items-center justify-content-center">
+                        <div style="position: relative; width: 100%; height: 200px;">
+                            <canvas id="complianceDonutChart"></canvas>
+                        </div>
+                        <div class="row w-100 mt-3 pt-3 border-top text-center g-2">
+                            <div class="col-6">
+                                <div class="text-muted small">Assessed Penalties</div>
+                                <div class="fw-bold text-danger fs-5 font-mono" th:text="${'₹' + #numbers.formatDecimal(complianceMetrics.totalFinesAssessed, 1, 2)}">₹0.00</div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-muted small">Pending Invoicing</div>
+                                <div class="fw-bold text-warning fs-5 font-mono" th:text="${'₹' + #numbers.formatDecimal(complianceMetrics.pendingFines, 1, 2)}">₹0.00</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Polished Live Activity Tables Row -->
+        <section class="row g-4">
+            <!-- Left: Recent Telemetry Stream -->
+            <div class="col-lg-8">
+                <div class="card h-100">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+                        <div>
+                            <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                                <span class="live-pulse-dot"></span> Live Telemetry Feed
+                            </h5>
+                            <p class="text-muted small mb-0">Automated sensor readings and regulatory fine evaluations</p>
+                        </div>
+                        <a th:href="@{/telemetry}" class="btn-action-pill">
+                            View Full Stream <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table-scada">
+                                <thead>
+                                <tr>
+                                    <th>Factory</th>
+                                    <th>Receiving Plant</th>
+                                    <th>Timestamp</th>
+                                    <th>COD Level</th>
+                                    <th>pH</th>
+                                    <th>Compliance</th>
+                                    <th>Penalty</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="t : ${recentTelemetry}">
+                                    <td>
+                                        <div class="fw-bold text-dark" th:text="${t.factory.name}">Apex Textiles Ltd</div>
+                                        <span class="small text-muted font-mono">ID: #<span th:text="${t.id}">1</span></span>
+                                    </td>
+                                    <td>
+                                        <span class="small fw-semibold text-secondary" th:text="${t.treatmentPlant.name}">Central ETP</span>
+                                    </td>
+                                    <td class="small text-muted font-mono" th:text="${#temporals.format(t.readingDateTime, 'yyyy-MM-dd HH:mm')}">
+                                        2026-09-25 14:30
+                                    </td>
+                                    <td>
+                                        <span class="font-mono fw-bold"
+                                              th:classappend="${t.codValue > t.allowedCodLimit ? 'text-danger' : 'text-success'}"
+                                              th:text="${#numbers.formatDecimal(t.codValue, 1, 1)}">240.0</span>
+                                        <span class="text-muted small">/ <span th:text="${t.allowedCodLimit}">250.0</span> mg/L</span>
+                                    </td>
+                                    <td>
+                                        <span class="font-mono small"
+                                              th:classappend="${t.phValue < 6.5 || t.phValue > 8.5 ? 'text-warning fw-bold' : 'text-dark'}"
+                                              th:text="${#numbers.formatDecimal(t.phValue, 1, 2)}">7.2</span>
+                                    </td>
+                                    <td>
+                                        <span th:if="${t.complianceStatus.name() == 'COMPLIANT'}" class="badge-status badge-status-compliant">
+                                            COMPLIANT
+                                        </span>
+                                        <span th:if="${t.complianceStatus.name() == 'NON_COMPLIANT'}" class="badge-status badge-status-noncompliant">
+                                            NON_COMPLIANT
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span th:if="${t.surchargeAmount > 0}" class="text-danger fw-bold font-mono"
+                                              th:text="${'₹' + #numbers.formatDecimal(t.surchargeAmount, 1, 2)}">₹1,000.00</span>
+                                        <span th:if="${t.surchargeAmount == 0}" class="text-muted small font-mono">₹0.00</span>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(recentTelemetry)}">
+                                    <td colspan="7">
+                                        <div class="empty-state-box">
+                                            <div class="empty-state-icon"><i class="bi bi-broadcast"></i></div>
+                                            <div class="empty-state-title">No Telemetry Recorded</div>
+                                            <div class="empty-state-desc">Use the ingest button to record factory effluent metrics.</div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Invoices & Receivables Ledger -->
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+                        <div>
+                            <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                                <i class="bi bi-receipt text-primary"></i> Customer Billing
+                            </h5>
+                            <p class="text-muted small mb-0">Receivables &amp; Surcharge Invoices</p>
+                        </div>
+                        <a th:href="@{/invoices}" class="btn-action-pill">
+                            Billing Hub <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table-scada">
+                                <thead>
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Factory</th>
+                                    <th>Total Due</th>
+                                    <th>Status</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="inv : ${recentInvoices}">
+                                    <td>
+                                        <div class="fw-bold text-primary font-mono" th:text="${inv.invoiceNumber}">INV-001</div>
+                                        <span class="small text-muted font-mono" th:text="${inv.issueDate}">2026-09-25</span>
+                                    </td>
+                                    <td>
+                                        <div class="text-dark small fw-semibold" th:text="${inv.factory.name}">Apex Textiles</div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold font-mono" th:text="${'₹' + #numbers.formatDecimal(inv.totalAmount, 1, 0)}">₹0</div>
+                                        <div class="small font-mono" th:classappend="${inv.balanceAmount > 0 ? 'text-danger' : 'text-success'}">
+                                            Due: <span th:text="${'₹' + #numbers.formatDecimal(inv.balanceAmount, 1, 0)}">₹0</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span th:if="${inv.status.name() == 'PAID'}" class="badge-status badge-status-paid">PAID</span>
+                                        <span th:if="${inv.status.name() == 'PARTIALLY_PAID'}" class="badge-status badge-status-partial">PARTIAL</span>
+                                        <span th:if="${inv.status.name() == 'ISSUED'}" class="badge-status badge-status-issued">ISSUED</span>
+                                        <span th:if="${inv.status.name() == 'DRAFT'}" class="badge bg-secondary rounded-pill px-2 py-1 small">DRAFT</span>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(recentInvoices)}">
+                                    <td colspan="4">
+                                        <div class="empty-state-box">
+                                            <div class="empty-state-icon"><i class="bi bi-receipt"></i></div>
+                                            <div class="empty-state-title">No Invoices Found</div>
+                                            <div class="empty-state-desc">Generate invoices from sales orders to start billing.</div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <div th:replace="~{fragments/layout :: footer}"></div>
+</div>
+
+<div th:replace="~{fragments/layout :: scripts}"></div>
+
+<!-- Hidden data container for safe Chart.js consumption -->
+<div id="chartDataContainer" class="d-none"
+     th:data-compliant="${complianceMetrics.compliantCount}"
+     th:data-noncompliant="${complianceMetrics.nonCompliantCount}">
+    <div th:each="t : ${recentTelemetry}" class="telemetry-data-point"
+         th:data-factory="${t.factory.name}"
+         th:data-time="${#temporals.format(t.readingDateTime, 'HH:mm')}"
+         th:data-cod="${t.codValue}"
+         th:data-limit="${t.allowedCodLimit}">
+    </div>
+</div>
+
+<!-- Chart.js Telemetry Trend & Compliance Breakdown Script -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const container = document.getElementById('chartDataContainer');
+        const points = document.querySelectorAll('.telemetry-data-point');
+
+        const telemetryLabels = [];
+        const codValues = [];
+        const limitValues = [];
+
+        points.forEach(function (p) {
+            const factory = p.getAttribute('data-factory') || 'Station';
+            const time = p.getAttribute('data-time') || '00:00';
+            const cod = parseFloat(p.getAttribute('data-cod')) || 0;
+            const limit = parseFloat(p.getAttribute('data-limit')) || 250;
+
+            telemetryLabels.push(factory + ' (' + time + ')');
+            codValues.push(cod);
+            limitValues.push(limit);
+        });
+
+        // Fallback default sample data if list is empty
+        if (telemetryLabels.length === 0) {
+            telemetryLabels.push('Apex Textiles (08:30)', 'Apex Textiles (10:30)', 'Zenith Chem (12:30)', 'Zenith Chem (14:30)');
+            codValues.push(210, 350, 280, 420);
+            limitValues.push(250, 250, 300, 300);
+        }
+
+        // Render Real-Time COD Line Chart
+        const codCanvas = document.getElementById('codTrendChart');
+        if (codCanvas && typeof Chart !== 'undefined') {
+            const codCtx = codCanvas.getContext('2d');
+            const codGradient = codCtx.createLinearGradient(0, 0, 0, 260);
+            codGradient.addColorStop(0, 'rgba(2, 132, 199, 0.35)');
+            codGradient.addColorStop(1, 'rgba(2, 132, 199, 0.01)');
+
+            new Chart(codCtx, {
+                type: 'line',
+                data: {
+                    labels: telemetryLabels,
+                    datasets: [
+                        {
+                            label: 'Discharged COD (mg/L)',
+                            data: codValues,
+                            borderColor: '#0284c7',
+                            backgroundColor: codGradient,
+                            borderWidth: 2.5,
+                            fill: true,
+                            tension: 0.35,
+                            pointBackgroundColor: '#0284c7',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            pointRadius: 5,
+                            pointHoverRadius: 7
+                        },
+                        {
+                            label: 'Statutory Permissible Threshold (mg/L)',
+                            data: limitValues,
+                            borderColor: '#f43f5e',
+                            borderWidth: 2,
+                            borderDash: [6, 6],
+                            fill: false,
+                            pointRadius: 0,
+                            tension: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                boxWidth: 8,
+                                padding: 14,
+                                font: { family: "'Plus Jakarta Sans', sans-serif", size: 12, weight: '600' },
+                                color: '#475569'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#0f172a',
+                            titleFont: { family: "'Plus Jakarta Sans', sans-serif", size: 12, weight: '700' },
+                            bodyFont: { family: "'JetBrains Mono', monospace", size: 11 },
+                            padding: 10,
+                            cornerRadius: 8
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                font: { family: "'Plus Jakarta Sans', sans-serif", size: 11 },
+                                color: '#64748b'
+                            }
+                        },
+                        y: {
+                            grid: { color: '#f1f5f9' },
+                            ticks: {
+                                font: { family: "'JetBrains Mono', monospace", size: 11 },
+                                color: '#64748b'
+                            },
+                            title: {
+                                display: true,
+                                text: 'COD Level (mg/L)',
+                                color: '#94a3b8',
+                                font: { size: 11, weight: '600' }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render Compliance Donut Chart
+        let compliantCount = 2;
+        let nonCompliantCount = 2;
+        if (container) {
+            compliantCount = parseInt(container.getAttribute('data-compliant') || '2', 10);
+            nonCompliantCount = parseInt(container.getAttribute('data-noncompliant') || '2', 10);
+        }
+
+        const donutCanvas = document.getElementById('complianceDonutChart');
+        if (donutCanvas && typeof Chart !== 'undefined') {
+            const donutCtx = donutCanvas.getContext('2d');
+            new Chart(donutCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Compliant Discharges', 'Non-Compliant Violations'],
+                    datasets: [{
+                        data: [compliantCount, nonCompliantCount],
+                        backgroundColor: ['#10b981', '#f43f5e'],
+                        hoverBackgroundColor: ['#059669', '#e11d48'],
+                        borderWidth: 3,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '72%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                boxWidth: 8,
+                                padding: 12,
+                                font: { family: "'Plus Jakarta Sans', sans-serif", size: 11, weight: '600' },
+                                color: '#475569'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#0f172a',
+                            padding: 10,
+                            cornerRadius: 8
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+
+</body>
+</html>

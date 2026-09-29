@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Municipal Plant Budget & Chemical Procurement Oversight - AquaSCADA')}">
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: navbar('budget')}"></div>
+
+<div class="scada-main-content">
+
+    <!-- Top Utility Header -->
+    <header class="scada-top-header">
+        <ol class="scada-breadcrumb">
+            <li><a th:href="@{/}"><i class="bi bi-house-door me-1"></i>AquaSCADA</a></li>
+            <li>/</li>
+            <li><span>Fiscal Oversight</span></li>
+            <li>/</li>
+            <li class="scada-breadcrumb-active">Plant Budgets &amp; Chemical Allocation</li>
+        </ol>
+        <div class="scada-header-actions">
+            <span class="live-timestamp-chip">
+                <i class="bi bi-clock-history text-primary"></i>
+                <span id="scadaLiveClock">Loading clock...</span>
+            </span>
+            <button type="button" class="btn-action-pill btn-action-primary" data-bs-toggle="modal" data-bs-target="#newBudgetModal">
+                <i class="bi bi-plus-circle"></i> Allocate Plant Budget
+            </button>
+            <a th:href="@{/procurement}" class="btn-action-pill">
+                <i class="bi bi-cart-check"></i> Chemical Orders
+            </a>
+            <a th:href="@{/reports/profit-loss}" class="btn-action-pill">
+                <i class="bi bi-graph-up-arrow"></i> Financial P&amp;L
+            </a>
+        </div>
+    </header>
+
+    <main class="container-fluid px-4 py-4">
+
+        <!-- Flash messages -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-3 mb-4 d-flex align-items-center" role="alert">
+            <i class="bi bi-check-circle-fill me-2 fs-5 text-success"></i>
+            <span class="fw-semibold" th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3 mb-4 d-flex align-items-center" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2 fs-5 text-danger"></i>
+            <span class="fw-semibold" th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Page Title & Header -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+            <div>
+                <h1 class="page-title mb-1">Facility Budget Monitoring &amp; Chemical Costs</h1>
+                <p class="page-subtitle mb-0">Analytic cost center allocations, chlorine and coagulant procurement tracking, and fiscal variance control</p>
+            </div>
+            <div>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 font-mono">
+                    <i class="bi bi-calendar-check me-1"></i>Fiscal Year: 2026-2027
+                </span>
+            </div>
+        </div>
+
+        <!-- High-Level Fiscal Overview KPIs -->
+        <div class="row g-3 mb-4">
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-scada-kpi">
+                    <div class="kpi-header">
+                        <div>
+                            <div class="kpi-title">Total Allocated Budget</div>
+                            <div class="kpi-value font-mono text-dark" th:text="${'₹' + #numbers.formatDecimal(budgetPerformance.totalPlanned, 1, 0)}">
+                                ₹0
+                            </div>
+                        </div>
+                        <div class="kpi-icon-box icon-box-primary">
+                            <i class="bi bi-bank"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-footer">
+                        <span>Municipal Plant Allocations</span>
+                        <span class="badge bg-light text-dark border font-mono">FY 26-27</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-scada-kpi">
+                    <div class="kpi-header">
+                        <div>
+                            <div class="kpi-title">Actual Incurred Procurement</div>
+                            <div class="kpi-value font-mono text-danger" th:text="${'₹' + #numbers.formatDecimal(budgetPerformance.totalActual, 1, 0)}">
+                                ₹0
+                            </div>
+                        </div>
+                        <div class="kpi-icon-box icon-box-rose">
+                            <i class="bi bi-droplet-half"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-footer">
+                        <span>Chlorine, Alum &amp; Treatment</span>
+                        <span class="badge bg-danger-subtle text-danger font-mono">Account 5010</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-scada-kpi">
+                    <div class="kpi-header">
+                        <div>
+                            <div class="kpi-title">Remaining Available Funds</div>
+                            <div class="kpi-value font-mono text-success" th:text="${'₹' + #numbers.formatDecimal(budgetPerformance.totalVariance, 1, 0)}">
+                                ₹0
+                            </div>
+                        </div>
+                        <div class="kpi-icon-box icon-box-emerald">
+                            <i class="bi bi-shield-check"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-footer">
+                        <span>Unspent Fiscal Buffer</span>
+                        <span class="badge bg-success-subtle text-success font-mono">Solvent</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-scada-kpi">
+                    <div class="kpi-header">
+                        <div>
+                            <div class="kpi-title">Overall Budget Utilization</div>
+                            <div class="kpi-value font-mono text-dark" th:text="${budgetPerformance.overallUtilizationPercent + '%'}">
+                                0.0%
+                            </div>
+                        </div>
+                        <div class="kpi-icon-box icon-box-amber">
+                            <i class="bi bi-pie-chart"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="progress-scada mb-1">
+                            <div class="progress-bar"
+                                 th:classappend="${budgetPerformance.overallUtilizationPercent > 90 ? 'bg-danger' : (budgetPerformance.overallUtilizationPercent > 70 ? 'bg-warning' : 'bg-primary')}"
+                                 role="progressbar"
+                                 th:style="'width: ' + ${budgetPerformance.overallUtilizationPercent} + '%;'"></div>
+                        </div>
+                        <div class="d-flex justify-content-between small text-muted font-mono">
+                            <span>Status: Nominal</span>
+                            <span>Target: &lt; 90%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formula Breakdown Card -->
+        <div class="formula-card mb-4">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div>
+                    <h6 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                        <i class="bi bi-info-circle-fill text-primary"></i> Municipal Budget Variance Formula &amp; Accounting Integration
+                    </h6>
+                    <p class="text-muted small mb-0">
+                        Remaining budget funds are dynamically calculated across linked plant analytic accounts using real-time chemical purchase orders and vendor bills.
+                    </p>
+                </div>
+                <div>
+                    <div class="formula-expression">
+                        Remaining Funds = Allocated Budget &minus; Actual Chemical Procurement
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Facility-Centric Budget Analytic Cards (Grid of Cards) -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                <i class="bi bi-buildings text-primary"></i> Analytic Plant Budget Centers
+            </h5>
+            <span class="text-muted small">Tracking chlorine, coagulants, sludge treatment, and reagent expenses</span>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-lg-6" th:each="b : ${budgetPerformance.items}">
+                <div class="card h-100">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-start border-bottom">
+                        <div>
+                            <span class="badge bg-light text-primary border font-mono small mb-1" th:text="${b.analyticAccountName}">CC-ETP-01</span>
+                            <h5 class="fw-bold text-dark mb-0" th:text="${b.budgetName}">Central Plant Annual Budget</h5>
+                        </div>
+                        <span class="badge-status badge-status-compliant" th:text="${b.status}">APPROVED</span>
+                    </div>
+                    <div class="card-body p-4">
+                        <!-- Key Figures in Grid -->
+                        <div class="row g-3 text-center mb-3">
+                            <div class="col-4">
+                                <div class="text-muted small">Allocated Budget</div>
+                                <div class="fw-bold fs-6 font-mono text-dark" th:text="${'₹' + #numbers.formatDecimal(b.plannedAmount, 1, 0)}">₹250,000</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-muted small">Actual Chemical Costs</div>
+                                <div class="fw-bold fs-6 font-mono text-danger" th:text="${'₹' + #numbers.formatDecimal(b.actualAmount, 1, 0)}">₹45,000</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-muted small">Remaining Funds</div>
+                                <div class="fw-bold fs-6 font-mono text-success" th:text="${'₹' + #numbers.formatDecimal(b.plannedAmount - b.actualAmount, 1, 0)}">₹205,000</div>
+                            </div>
+                        </div>
+
+                        <!-- Budget Utilization Progress Bar -->
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between small text-muted mb-1">
+                                <span class="fw-semibold text-dark">Utilization Level</span>
+                                <span class="fw-bold font-mono"
+                                      th:classappend="${b.utilizationPercent > 90 ? 'text-danger' : (b.utilizationPercent > 70 ? 'text-warning' : 'text-success')}"
+                                      th:text="${b.utilizationPercent + '% Used'}">18.0% Used</span>
+                            </div>
+                            <div class="progress-scada" style="height: 10px;">
+                                <div class="progress-bar"
+                                     th:classappend="${b.utilizationPercent > 90 ? 'bg-danger' : (b.utilizationPercent > 70 ? 'bg-warning' : 'bg-success')}"
+                                     role="progressbar"
+                                     th:style="'width: ' + ${b.utilizationPercent} + '%;'"></div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between small text-muted pt-2 border-top mt-3">
+                            <span><i class="bi bi-calendar3 me-1"></i>Fiscal Period: <strong th:text="${b.financialYear}">2026-2027</strong></span>
+                            <span>
+                                Threshold Alert:
+                                <strong th:if="${b.utilizationPercent <= 70}" class="text-success"><i class="bi bi-check-circle me-1"></i>Optimal (&lt;70%)</strong>
+                                <strong th:if="${b.utilizationPercent > 70 && b.utilizationPercent <= 90}" class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Elevated (70-90%)</strong>
+                                <strong th:if="${b.utilizationPercent > 90}" class="text-danger"><i class="bi bi-exclamation-octagon me-1"></i>Critical (&gt;90%)</strong>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12" th:if="${#lists.isEmpty(budgetPerformance.items)}">
+                <div class="card p-5 text-center">
+                    <div class="empty-state-icon"><i class="bi bi-pie-chart"></i></div>
+                    <h5 class="empty-state-title">No Facility Budgets Configured</h5>
+                    <p class="empty-state-desc">Allocate annual budgets to treatment plant cost centers using the "+ Allocate Plant Budget" button.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Chemical Procurement Vendor Bills Table -->
+        <div class="card">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+                <div>
+                    <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                        <i class="bi bi-truck text-success"></i> Chemical Procurement Vendor Bills Ledger
+                    </h5>
+                    <p class="text-muted small mb-0">Direct procurement expenses posted to Account 5010 (Chemical Procurement Expense)</p>
+                </div>
+                <a th:href="@{/procurement}" class="btn-action-pill">
+                    View POs &amp; Vendors <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table-scada">
+                        <thead>
+                        <tr>
+                            <th>Bill #</th>
+                            <th>Supplier Vendor</th>
+                            <th>Bill Date</th>
+                            <th>Total Cost</th>
+                            <th>Amount Paid</th>
+                            <th>Balance Payable</th>
+                            <th>Status</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="bill : ${vendorBills}">
+                            <td>
+                                <div class="fw-bold text-primary font-mono" th:text="${bill.billNumber}">BILL-001</div>
+                                <span class="small text-muted font-mono" th:text="${bill.purchaseOrder != null ? bill.purchaseOrder.poNumber : 'N/A'}">PO-01</span>
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-dark" th:text="${bill.supplier.name}">Supplier Company</div>
+                            </td>
+                            <td class="font-mono text-muted small" th:text="${bill.billDate}">2026-09-25</td>
+                            <td class="fw-bold font-mono text-dark" th:text="${'₹' + #numbers.formatDecimal(bill.totalAmount, 1, 2)}">₹0.00</td>
+                            <td class="font-mono text-success" th:text="${'₹' + #numbers.formatDecimal(bill.paidAmount, 1, 2)}">₹0.00</td>
+                            <td class="fw-bold font-mono" th:classappend="${bill.balanceAmount > 0 ? 'text-danger' : 'text-success'}"
+                                th:text="${'₹' + #numbers.formatDecimal(bill.balanceAmount, 1, 2)}">₹0.00</td>
+                            <td>
+                                <span th:if="${bill.status.name() == 'PAID'}" class="badge-status badge-status-paid">PAID</span>
+                                <span th:if="${bill.status.name() == 'PARTIALLY_PAID'}" class="badge-status badge-status-partial">PARTIAL</span>
+                                <span th:if="${bill.status.name() == 'POSTED'}" class="badge-status badge-status-issued">POSTED</span>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(vendorBills)}">
+                            <td colspan="7">
+                                <div class="empty-state-box">
+                                    <div class="empty-state-icon"><i class="bi bi-truck"></i></div>
+                                    <div class="empty-state-title">No Chemical Vendor Bills Logged</div>
+                                    <div class="empty-state-desc">Chemical procurement purchase orders and supplier bills will appear here.</div>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal to Allocate Plant Budget -->
+        <div class="modal fade" id="newBudgetModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form th:action="@{/budget}" method="post">
+                        <div class="modal-header">
+                            <h5 class="modal-title fw-bold">Allocate Facility Budget</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-scada-label" for="budgetNameInput">Budget Line Item Name</label>
+                                <input type="text" name="budgetName" id="budgetNameInput" class="form-control-scada no-icon" placeholder="e.g. South ETP Annual Chlorine Budget" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-scada-label" for="analyticAccountSelect">Analytic Cost Center / Facility</label>
+                                <select name="analyticAccountId" id="analyticAccountSelect" class="form-select-scada no-icon" required>
+                                    <option value="" disabled selected>-- Select Analytic Cost Center --</option>
+                                    <option th:each="aa : ${analyticAccounts}" th:value="${aa.id}" th:text="${aa.name + ' (' + aa.code + ')'}"></option>
+                                </select>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-scada-label" for="fyInput">Financial Year</label>
+                                    <input type="text" name="financialYear" id="fyInput" class="form-control-scada no-icon font-mono" value="2026-2027" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-scada-label" for="plannedAmountInput">Planned Budget (₹)</label>
+                                    <input type="number" step="1000" min="0" name="plannedAmount" id="plannedAmountInput" class="form-control-scada no-icon font-mono" placeholder="200000" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-action-pill btn-action-primary">
+                                <i class="bi bi-check-circle me-1"></i> Allocate Budget
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <div th:replace="~{fragments/layout :: footer}"></div>
+</div>
+
+<div th:replace="~{fragments/layout :: scripts}"></div>
+
+</body>
+</html>

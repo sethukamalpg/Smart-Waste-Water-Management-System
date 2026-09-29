@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Customer Utility Billing & Surcharge Ledger - AquaSCADA')}">
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: navbar('invoices')}"></div>
+
+<div class="scada-main-content">
+
+    <!-- Top Utility Header -->
+    <header class="scada-top-header">
+        <ol class="scada-breadcrumb">
+            <li><a th:href="@{/}"><i class="bi bi-house-door me-1"></i>AquaSCADA</a></li>
+            <li>/</li>
+            <li><span>Revenue &amp; Surcharges</span></li>
+            <li>/</li>
+            <li class="scada-breadcrumb-active">Utility Billing &amp; Invoices Ledger</li>
+        </ol>
+        <div class="scada-header-actions">
+            <span class="live-timestamp-chip">
+                <i class="bi bi-clock-history text-primary"></i>
+                <span id="scadaLiveClock">Loading clock...</span>
+            </span>
+            <button type="button" class="btn-action-pill" data-bs-toggle="modal" data-bs-target="#newServiceOrderModal">
+                <i class="bi bi-file-earmark-plus"></i> New Service Order
+            </button>
+            <button type="button" class="btn-action-pill btn-action-primary" data-bs-toggle="modal" data-bs-target="#newInvoiceModal">
+                <i class="bi bi-receipt"></i> Generate Invoice
+            </button>
+            <button type="button" class="btn-action-pill btn-action-success" data-bs-toggle="modal" data-bs-target="#newPaymentModal">
+                <i class="bi bi-credit-card"></i> Record Payment
+            </button>
+        </div>
+    </header>
+
+    <main class="container-fluid px-4 py-4">
+
+        <!-- Flash messages -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-3 mb-4 d-flex align-items-center" role="alert">
+            <i class="bi bi-check-circle-fill me-2 fs-5 text-success"></i>
+            <span class="fw-semibold" th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3 mb-4 d-flex align-items-center" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2 fs-5 text-danger"></i>
+            <span class="fw-semibold" th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Page Header -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+            <div>
+                <h1 class="page-title mb-1">Customer Utility Billing &amp; Surcharge Ledger</h1>
+                <p class="page-subtitle mb-0">Automated surcharge aggregation, double-entry ledger postings, and real-time payment settlement</p>
+            </div>
+            <div class="d-flex gap-2 mt-2 mt-sm-0">
+                <a th:href="@{/budget}" class="btn-action-pill">
+                    <i class="bi bi-pie-chart text-amber-500"></i> Plant Budgets
+                </a>
+                <a th:href="@{/reports/profit-loss}" class="btn-action-pill">
+                    <i class="bi bi-graph-up-arrow text-primary"></i> P&amp;L Statement
+                </a>
+            </div>
+        </div>
+
+        <!-- Fast Service Order Form Card -->
+        <div class="card mb-4">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                        <i class="bi bi-file-earmark-spreadsheet text-primary"></i> Create Treatment Service Order
+                    </h5>
+                    <p class="text-muted small mb-0">Register monthly biological wastewater neutralization order for industrial factory</p>
+                </div>
+                <span class="badge bg-light text-dark border px-2 py-1 small font-mono">
+                    <i class="bi bi-calculator text-primary me-1"></i>Pre-Calculated Totals
+                </span>
+            </div>
+            <div class="card-body p-4 bg-light-subtle">
+                <form th:action="@{/invoices/sales-orders}" method="post" id="serviceOrderInlineForm">
+                    <div class="row g-3 align-items-end">
+                        <!-- Factory Selection -->
+                        <div class="col-md-3">
+                            <label class="form-scada-label" for="soFactorySelect">Factory Client</label>
+                            <div class="input-group-scada">
+                                <i class="bi bi-buildings input-icon-prefix"></i>
+                                <select name="factoryId" id="soFactorySelect" class="form-select-scada" required>
+                                    <option value="" disabled selected>-- Select Factory --</option>
+                                    <option th:each="f : ${factories}" th:value="${f.id}" th:text="${f.name}"></option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Product Selection -->
+                        <div class="col-md-3">
+                            <label class="form-scada-label" for="soProductSelect">Treatment Service</label>
+                            <div class="input-group-scada">
+                                <i class="bi bi-droplet-half input-icon-prefix"></i>
+                                <select name="productId" id="soProductSelect" class="form-select-scada" required onchange="updateServiceOrderTotal()">
+                                    <option th:each="p : ${products}" th:value="${p.id}"
+                                            th:data-price="${p.unitPrice}"
+                                            th:text="${p.productName + ' (₹' + p.unitPrice + '/' + p.unit + ')'}"></option>
+                                    <option th:if="${#lists.isEmpty(products)}" value="1" data-price="15.0">Effluent Treatment Service (₹15.00/m³)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Quantity -->
+                        <div class="col-md-2">
+                            <label class="form-scada-label" for="soQtyInput">Quantity (m³)</label>
+                            <div class="input-group-scada">
+                                <i class="bi bi-layers input-icon-prefix"></i>
+                                <input type="number" step="1" min="1" name="quantity" id="soQtyInput"
+                                       class="form-control-scada font-mono" value="200" required oninput="updateServiceOrderTotal()">
+                            </div>
+                        </div>
+
+                        <!-- Unit Price -->
+                        <div class="col-md-2">
+                            <label class="form-scada-label" for="soPriceInput">Unit Price (₹/m³)</label>
+                            <div class="input-group-scada">
+                                <i class="bi bi-currency-rupee input-icon-prefix"></i>
+                                <input type="number" step="0.5" min="0" name="unitPrice" id="soPriceInput"
+                                       class="form-control-scada font-mono" value="15.0" required oninput="updateServiceOrderTotal()">
+                            </div>
+                        </div>
+
+                        <!-- Pre-calculated Total & Submit Button -->
+                        <div class="col-md-2">
+                            <div class="text-muted small fw-semibold text-uppercase mb-1">Pre-Calculated Total</div>
+                            <div class="fs-5 fw-extrabold text-primary font-mono mb-2" id="soCalculatedTotal">₹3,000.00</div>
+                            <button type="submit" class="btn btn-action-pill btn-action-primary w-100 justify-content-center">
+                                <i class="bi bi-check2-circle me-1"></i> Confirm Order
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Customer Invoices Ledger Table -->
+        <div class="card mb-4">
+            <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2 border-bottom">
+                <div>
+                    <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                        <i class="bi bi-receipt-cutoff text-primary"></i> Customer Invoices Ledger
+                    </h5>
+                    <p class="text-muted small mb-0">Discharge service fees and aggregated statutory COD surcharge fines</p>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-light text-dark border px-2 py-1 small font-mono">
+                        <span class="live-pulse-dot me-1" style="width:6px; height:6px;"></span> Double-Entry Synced
+                    </span>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table-scada">
+                        <thead>
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Factory Client</th>
+                            <th>Issue Date</th>
+                            <th>Base Service Fee</th>
+                            <th>COD Surcharges</th>
+                            <th>Total Payable</th>
+                            <th>Balance Due</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="inv : ${invoices}">
+                            <td>
+                                <div class="fw-bold text-primary font-mono" th:text="${inv.invoiceNumber}">INV-001</div>
+                                <span class="small text-muted font-mono" th:text="${'Due: ' + inv.dueDate}">Due: 2026-10-25</span>
+                            </td>
+                            <td>
+                                <div class="fw-bold text-dark" th:text="${inv.factory.name}">Factory Name</div>
+                                <span class="small text-muted font-mono">Order: <span th:text="${inv.salesOrder != null ? inv.salesOrder.orderNumber : 'N/A'}">SO-101</span></span>
+                            </td>
+                            <td class="font-mono text-muted small" th:text="${inv.issueDate}">2026-09-25</td>
+                            <td class="font-mono" th:text="${'₹' + #numbers.formatDecimal(inv.subtotal, 1, 2)}">₹0.00</td>
+                            <td>
+                                <span th:if="${inv.surchargeAmount > 0}" class="chip-surcharge-fine font-mono"
+                                      th:text="${'+₹' + #numbers.formatDecimal(inv.surchargeAmount, 1, 2)}">+₹1,000.00</span>
+                                <span th:if="${inv.surchargeAmount == 0}" class="text-muted small font-mono">₹0.00</span>
+                            </td>
+                            <td class="fw-bold font-mono text-dark" th:text="${'₹' + #numbers.formatDecimal(inv.totalAmount, 1, 2)}">₹0.00</td>
+                            <td class="fw-bold font-mono" th:classappend="${inv.balanceAmount > 0 ? 'text-danger' : 'text-success'}"
+                                th:text="${'₹' + #numbers.formatDecimal(inv.balanceAmount, 1, 2)}">₹0.00</td>
+                            <td>
+                                <span th:if="${inv.status.name() == 'PAID'}" class="badge-status badge-status-paid">PAID</span>
+                                <span th:if="${inv.status.name() == 'PARTIALLY_PAID'}" class="badge-status badge-status-partial">PARTIAL</span>
+                                <span th:if="${inv.status.name() == 'ISSUED'}" class="badge-status badge-status-issued">ISSUED</span>
+                                <span th:if="${inv.status.name() == 'DRAFT'}" class="badge bg-secondary rounded-pill px-2 py-1 small">DRAFT</span>
+                            </td>
+                            <td>
+                                <button th:if="${inv.balanceAmount > 0}" type="button"
+                                        class="btn-action-pill btn-action-success btn-sm py-1 px-2"
+                                        data-bs-toggle="modal" data-bs-target="#newPaymentModal"
+                                        th:onclick="'prefillPaymentModal(' + ${inv.id} + ', ' + ${inv.balanceAmount} + ')'">
+                                    <i class="bi bi-cash-stack"></i> Record Payment
+                                </button>
+                                <span th:if="${inv.balanceAmount == 0}" class="text-success small fw-semibold">
+                                    <i class="bi bi-check-all"></i> Settled
+                                </span>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(invoices)}">
+                            <td colspan="9">
+                                <div class="empty-state-box">
+                                    <div class="empty-state-icon"><i class="bi bi-receipt"></i></div>
+                                    <div class="empty-state-title">No Customer Invoices Issued</div>
+                                    <div class="empty-state-desc">Use the "Generate Invoice" button to bill a confirmed sales order.</div>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer Settlement History Table -->
+        <div class="card">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+                <div>
+                    <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                        <i class="bi bi-wallet2 text-success"></i> Customer Settlement &amp; Payment History
+                    </h5>
+                    <p class="text-muted small mb-0">Posted receipts credited to Bank / Cash (1010) and debited from A/R (1020)</p>
+                </div>
+                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1 small font-mono">
+                    <i class="bi bi-shield-check me-1"></i>General Ledger Balanced
+                </span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table-scada">
+                        <thead>
+                        <tr>
+                            <th>Payment Reference</th>
+                            <th>Invoice #</th>
+                            <th>Factory Client</th>
+                            <th>Payment Date</th>
+                            <th>Amount Paid</th>
+                            <th>Payment Method</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="p : ${payments}">
+                            <td class="fw-bold font-mono text-dark" th:text="${p.paymentReference}">PAY-1001</td>
+                            <td class="text-primary font-mono fw-semibold" th:text="${p.invoice.invoiceNumber}">INV-001</td>
+                            <td class="fw-semibold text-dark" th:text="${p.invoice.factory.name}">Factory Name</td>
+                            <td class="font-mono text-muted small" th:text="${p.paymentDate}">2026-09-25</td>
+                            <td class="fw-bold font-mono text-success" th:text="${'₹' + #numbers.formatDecimal(p.amount, 1, 2)}">₹0.00</td>
+                            <td>
+                                <span th:if="${p.paymentMethod.name() == 'UPI'}" class="badge bg-info-subtle text-info border px-2 py-1 small font-mono">
+                                    <i class="bi bi-qr-code me-1"></i>UPI Rail
+                                </span>
+                                <span th:if="${p.paymentMethod.name() == 'BANK_TRANSFER'}" class="badge bg-primary-subtle text-primary border px-2 py-1 small font-mono">
+                                    <i class="bi bi-bank me-1"></i>Bank Transfer
+                                </span>
+                                <span th:if="${p.paymentMethod.name() == 'CASH'}" class="badge bg-success-subtle text-success border px-2 py-1 small font-mono">
+                                    <i class="bi bi-cash me-1"></i>Cash
+                                </span>
+                                <span th:if="${p.paymentMethod.name() == 'CHEQUE'}" class="badge bg-secondary-subtle text-dark border px-2 py-1 small font-mono">
+                                    <i class="bi bi-receipt me-1"></i>Cheque
+                                </span>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(payments)}">
+                            <td colspan="6">
+                                <div class="empty-state-box">
+                                    <div class="empty-state-icon"><i class="bi bi-cash-coin"></i></div>
+                                    <div class="empty-state-title">No Customer Payments Recorded</div>
+                                    <div class="empty-state-desc">Record customer settlements to post cash ledger entries.</div>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal to Generate Invoice from Sales Order -->
+        <div class="modal fade" id="newInvoiceModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form th:action="@{/invoices/generate}" method="post">
+                        <div class="modal-header">
+                            <h5 class="modal-title fw-bold">Generate Invoice from Sales Order</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="text-muted small">Generating an invoice will automatically attach all pending unbilled telemetry surcharges for the associated factory and post double-entry ledger entries.</p>
+                            <div class="mb-3">
+                                <label class="form-scada-label" for="salesOrderId">Select Confirmed Sales Order</label>
+                                <select name="salesOrderId" id="salesOrderId" class="form-select-scada no-icon" required>
+                                    <option value="" disabled selected>-- Select Sales Order --</option>
+                                    <option th:each="so : ${salesOrders}"
+                                            th:if="${so.status.name() != 'INVOICED'}"
+                                            th:value="${so.id}"
+                                            th:text="${so.orderNumber + ' - ' + so.factory.name + ' (₹' + #numbers.formatDecimal(so.totalAmount, 1, 2) + ')'}"></option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-action-pill btn-action-primary">
+                                <i class="bi bi-file-earmark-check me-1"></i> Generate Invoice
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal to Record Payment with Modern Method Pills -->
+        <div class="modal fade" id="newPaymentModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form th:action="@{/invoices/pay}" method="post">
+                        <div class="modal-header">
+                            <h5 class="modal-title fw-bold">Record Customer Payment</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-scada-label" for="invoiceSelect">Select Customer Invoice</label>
+                                <select name="invoiceId" id="invoiceSelect" class="form-select-scada no-icon" required>
+                                    <option value="" disabled selected>-- Select Outstanding Invoice --</option>
+                                    <option th:each="inv : ${invoices}"
+                                            th:if="${inv.balanceAmount > 0}"
+                                            th:value="${inv.id}"
+                                            th:text="${inv.invoiceNumber + ' - ' + inv.factory.name + ' (Balance: ₹' + #numbers.formatDecimal(inv.balanceAmount, 1, 2) + ')'}"></option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-scada-label" for="paymentAmount">Payment Amount (₹)</label>
+                                <input type="number" step="0.01" min="0.01" name="amount" id="paymentAmount" class="form-control-scada no-icon font-mono" placeholder="e.g. 1500.00" required>
+                                <div class="form-helper-text">Payment amount cannot exceed outstanding balance.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-scada-label">Payment Rail &amp; Method</label>
+                                <div class="payment-method-selector">
+                                    <div class="payment-method-option">
+                                        <input type="radio" name="paymentMethod" id="pmBank" value="BANK_TRANSFER" checked>
+                                        <label class="payment-method-label" for="pmBank">
+                                            <i class="bi bi-bank"></i>
+                                            <span>Bank Transfer</span>
+                                        </label>
+                                    </div>
+                                    <div class="payment-method-option">
+                                        <input type="radio" name="paymentMethod" id="pmUpi" value="UPI">
+                                        <label class="payment-method-label" for="pmUpi">
+                                            <i class="bi bi-qr-code"></i>
+                                            <span>UPI Rail</span>
+                                        </label>
+                                    </div>
+                                    <div class="payment-method-option">
+                                        <input type="radio" name="paymentMethod" id="pmCash" value="CASH">
+                                        <label class="payment-method-label" for="pmCash">
+                                            <i class="bi bi-cash-stack"></i>
+                                            <span>Cash</span>
+                                        </label>
+                                    </div>
+                                    <div class="payment-method-option">
+                                        <input type="radio" name="paymentMethod" id="pmCheque" value="CHEQUE">
+                                        <label class="payment-method-label" for="pmCheque">
+                                            <i class="bi bi-receipt"></i>
+                                            <span>Cheque</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-scada-label" for="paymentReference">Payment Reference / UTR Number</label>
+                                <input type="text" name="paymentReference" id="paymentReference" class="form-control-scada no-icon font-mono" placeholder="e.g. UTR-9823482741">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-action-pill btn-action-success">
+                                <i class="bi bi-check-circle me-1"></i> Post Payment
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <div th:replace="~{fragments/layout :: footer}"></div>
+</div>
+
+<div th:replace="~{fragments/layout :: scripts}"></div>
+
+<script>
+    function updateServiceOrderTotal() {
+        const qty = parseFloat(document.getElementById('soQtyInput').value) || 0;
+        const price = parseFloat(document.getElementById('soPriceInput').value) || 0;
+        const total = qty * price;
+        const totalEl = document.getElementById('soCalculatedTotal');
+        if (totalEl) {
+            totalEl.textContent = '₹' + total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+    }
+
+    function prefillPaymentModal(invoiceId, balance) {
+        const select = document.getElementById('invoiceSelect');
+        const amountInput = document.getElementById('paymentAmount');
+        if (select) {
+            select.value = invoiceId;
+        }
+        if (amountInput) {
+            amountInput.value = balance;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        updateServiceOrderTotal();
+    });
+</script>
+
+</body>
+</html>

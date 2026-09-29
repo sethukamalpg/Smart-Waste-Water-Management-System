@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Chemical Procurement & Supplier Bills - AquaSCADA')}">
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: navbar('procurement')}"></div>
+
+<div class="scada-main-content">
+
+    <!-- Top Utility Header -->
+    <header class="scada-top-header">
+        <ol class="scada-breadcrumb">
+            <li><a th:href="@{/}"><i class="bi bi-house-door me-1"></i>AquaSCADA</a></li>
+            <li>/</li>
+            <li><span>Procurement</span></li>
+            <li>/</li>
+            <li class="scada-breadcrumb-active">Chemical Orders &amp; Vendor Bills</li>
+        </ol>
+        <div class="scada-header-actions">
+            <span class="live-timestamp-chip">
+                <i class="bi bi-clock-history text-primary"></i>
+                <span id="scadaLiveClock">Loading clock...</span>
+            </span>
+            <a th:href="@{/budget}" class="btn-action-pill">
+                <i class="bi bi-pie-chart text-warning"></i> Budget Monitoring
+            </a>
+            <a th:href="@{/factories}" class="btn-action-pill">
+                <i class="bi bi-truck text-success"></i> Manage Suppliers
+            </a>
+        </div>
+    </header>
+
+    <main class="container-fluid px-4 py-4">
+
+        <!-- Flash messages -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-3 mb-4 d-flex align-items-center" role="alert">
+            <i class="bi bi-check-circle-fill me-2 fs-5 text-success"></i>
+            <span class="fw-semibold" th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3 mb-4 d-flex align-items-center" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2 fs-5 text-danger"></i>
+            <span class="fw-semibold" th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Page Header -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+            <div>
+                <h1 class="page-title mb-1">Chemical Reagents &amp; Procurement Hub</h1>
+                <p class="page-subtitle mb-0">Chlorine gas, coagulant alum, and treatment chemical purchase orders &amp; vendor bills ledger</p>
+            </div>
+            <div>
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 font-mono">
+                    <i class="bi bi-truck me-1"></i>Supply Chain Operational
+                </span>
+            </div>
+        </div>
+
+        <!-- Purchase Orders Table -->
+        <div class="card mb-4">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+                <div>
+                    <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                        <i class="bi bi-cart-check text-primary"></i> Chemical Purchase Orders (POs)
+                    </h5>
+                    <p class="text-muted small mb-0">Authorized chemical reagent orders submitted to authorized suppliers</p>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table-scada">
+                        <thead>
+                        <tr>
+                            <th>PO Number</th>
+                            <th>Chemical Supplier</th>
+                            <th>Order Date</th>
+                            <th>Total Amount</th>
+                            <th>Order Status</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="po : ${purchaseOrders}">
+                            <td>
+                                <div class="fw-bold text-primary font-mono" th:text="${po.poNumber}">PO-1001</div>
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-dark" th:text="${po.supplier.name}">PureAqua Reagents</div>
+                                <span class="small text-muted font-mono" th:text="${po.supplier.city}">Metro City</span>
+                            </td>
+                            <td class="font-mono text-muted small" th:text="${po.orderDate}">2026-09-25</td>
+                            <td class="fw-bold font-mono text-dark" th:text="${'₹' + #numbers.formatDecimal(po.totalAmount, 1, 2)}">₹2,250.00</td>
+                            <td>
+                                <span th:if="${po.status.name() == 'BILLED'}" class="badge-status badge-status-paid">BILLED</span>
+                                <span th:if="${po.status.name() == 'CONFIRMED'}" class="badge-status badge-status-issued">CONFIRMED</span>
+                                <span th:if="${po.status.name() == 'DRAFT'}" class="badge bg-secondary rounded-pill px-2 py-1 small">DRAFT</span>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(purchaseOrders)}">
+                            <td colspan="5">
+                                <div class="empty-state-box">
+                                    <div class="empty-state-icon"><i class="bi bi-cart-x"></i></div>
+                                    <div class="empty-state-title">No Purchase Orders Recorded</div>
+                                    <div class="empty-state-desc">Chemical procurement purchase orders will appear here.</div>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vendor Bills Table -->
+        <div class="card mb-4">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+                <div>
+                    <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                        <i class="bi bi-file-earmark-spreadsheet text-danger"></i> Chemical Vendor Bills &amp; Payables
+                    </h5>
+                    <p class="text-muted small mb-0">Supplier invoices posted to Account 5010 (Chemical Procurement Expense)</p>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table-scada">
+                        <thead>
+                        <tr>
+                            <th>Bill #</th>
+                            <th>Chemical Supplier</th>
+                            <th>Bill Date</th>
+                            <th>Total Amount</th>
+                            <th>Paid Amount</th>
+                            <th>Balance Payable</th>
+                            <th>Status</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="bill : ${vendorBills}">
+                            <td>
+                                <div class="fw-bold text-danger font-mono" th:text="${bill.billNumber}">BILL-001</div>
+                                <span class="small text-muted font-mono" th:text="${bill.purchaseOrder != null ? bill.purchaseOrder.poNumber : 'N/A'}">PO-01</span>
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-dark" th:text="${bill.supplier.name}">Supplier Company</div>
+                            </td>
+                            <td class="font-mono text-muted small" th:text="${bill.billDate}">2026-09-25</td>
+                            <td class="fw-bold font-mono text-dark" th:text="${'₹' + #numbers.formatDecimal(bill.totalAmount, 1, 2)}">₹0.00</td>
+                            <td class="font-mono text-success" th:text="${'₹' + #numbers.formatDecimal(bill.paidAmount, 1, 2)}">₹0.00</td>
+                            <td class="fw-bold font-mono" th:classappend="${bill.balanceAmount > 0 ? 'text-danger' : 'text-success'}"
+                                th:text="${'₹' + #numbers.formatDecimal(bill.balanceAmount, 1, 2)}">₹0.00</td>
+                            <td>
+                                <span th:if="${bill.status.name() == 'PAID'}" class="badge-status badge-status-paid">PAID</span>
+                                <span th:if="${bill.status.name() == 'PARTIALLY_PAID'}" class="badge-status badge-status-partial">PARTIAL</span>
+                                <span th:if="${bill.status.name() == 'POSTED'}" class="badge-status badge-status-issued">POSTED</span>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(vendorBills)}">
+                            <td colspan="7">
+                                <div class="empty-state-box">
+                                    <div class="empty-state-icon"><i class="bi bi-truck"></i></div>
+                                    <div class="empty-state-title">No Chemical Vendor Bills Logged</div>
+                                    <div class="empty-state-desc">Supplier bills will appear here when generated from purchase orders.</div>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vendor Payments History Table -->
+        <div class="card">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+                <div>
+                    <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                        <i class="bi bi-cash-stack text-success"></i> Chemical Supplier Settlement History
+                    </h5>
+                    <p class="text-muted small mb-0">Payments disbursed to chemical vendors</p>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table-scada">
+                        <thead>
+                        <tr>
+                            <th>Payment Reference</th>
+                            <th>Bill #</th>
+                            <th>Supplier</th>
+                            <th>Payment Date</th>
+                            <th>Amount Paid</th>
+                            <th>Payment Method</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="vp : ${vendorPayments}">
+                            <td class="fw-bold font-mono text-dark" th:text="${vp.paymentReference}">VPAY-001</td>
+                            <td class="text-danger font-mono fw-semibold" th:text="${vp.vendorBill.billNumber}">BILL-001</td>
+                            <td class="fw-semibold text-dark" th:text="${vp.vendorBill.supplier.name}">Supplier</td>
+                            <td class="font-mono text-muted small" th:text="${vp.paymentDate}">2026-09-25</td>
+                            <td class="fw-bold font-mono text-success" th:text="${'₹' + #numbers.formatDecimal(vp.amount, 1, 2)}">₹0.00</td>
+                            <td>
+                                <span class="badge bg-light text-dark border px-2 py-1 small font-mono" th:text="${vp.paymentMethod}">BANK_TRANSFER</span>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(vendorPayments)}">
+                            <td colspan="6">
+                                <div class="empty-state-box">
+                                    <div class="empty-state-icon"><i class="bi bi-cash-coin"></i></div>
+                                    <div class="empty-state-title">No Vendor Disbursements Recorded</div>
+                                    <div class="empty-state-desc">Chemical vendor settlements will appear here.</div>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <div th:replace="~{fragments/layout :: footer}"></div>
+</div>
+
+<div th:replace="~{fragments/layout :: scripts}"></div>
+
+</body>
+</html>

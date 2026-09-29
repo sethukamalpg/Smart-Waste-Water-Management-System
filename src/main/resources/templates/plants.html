@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Municipal Treatment Plants Registry - AquaSCADA')}">
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: navbar('plants')}"></div>
+
+<div class="scada-main-content">
+
+    <!-- Top Utility Header -->
+    <header class="scada-top-header">
+        <ol class="scada-breadcrumb">
+            <li><a th:href="@{/}"><i class="bi bi-house-door me-1"></i>AquaSCADA</a></li>
+            <li>/</li>
+            <li><span>Infrastructure</span></li>
+            <li>/</li>
+            <li class="scada-breadcrumb-active">Municipal Treatment Plants</li>
+        </ol>
+        <div class="scada-header-actions">
+            <span class="live-timestamp-chip">
+                <i class="bi bi-clock-history text-primary"></i>
+                <span id="scadaLiveClock">2026-09-27 16:45:00</span>
+            </span>
+            <button type="button" class="btn-action-pill btn-action-primary" data-bs-toggle="modal" data-bs-target="#newPlantModal">
+                <i class="bi bi-plus-circle"></i> Register Plant
+            </button>
+            <a th:href="@{/telemetry}" class="btn-action-pill">
+                <i class="bi bi-activity"></i> Live Telemetry
+            </a>
+            <a th:href="@{/plants}" class="btn-action-pill" title="Refresh">
+                <i class="bi bi-arrow-repeat"></i>
+            </a>
+        </div>
+    </header>
+
+    <main class="container-fluid px-4 py-4">
+
+        <!-- Flash messages -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-3 mb-4 d-flex align-items-center" role="alert">
+            <i class="bi bi-check-circle-fill me-2 fs-5 text-success"></i>
+            <span class="fw-semibold" th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3 mb-4 d-flex align-items-center" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2 fs-5 text-danger"></i>
+            <span class="fw-semibold" th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+            <div>
+                <h1 class="page-title mb-1">Municipal Waste Water Treatment Facilities</h1>
+                <p class="page-subtitle mb-0">Centralized facility registry, volumetric daily capacity, and statutory baseline COD thresholds</p>
+            </div>
+            <div>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 font-mono">
+                    <i class="bi bi-buildings me-1"></i>Centralized SCADA Grid
+                </span>
+            </div>
+        </div>
+
+        <!-- Plants Table Card -->
+        <div class="card mb-4">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+                <div>
+                    <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                        <i class="bi bi-buildings-fill text-primary"></i> Treatment Plant Infrastructure
+                    </h5>
+                    <p class="text-muted small mb-0">Regulated municipal receiving basins and effluent treatment plants (ETPs)</p>
+                </div>
+                <span class="badge bg-light text-dark border px-2 py-1 small font-mono">
+                    <span class="live-pulse-dot me-1" style="width:6px; height:6px;"></span> Active Basins
+                </span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table-scada">
+                        <thead>
+                        <tr>
+                            <th>Facility ID</th>
+                            <th>Plant Facility Name</th>
+                            <th>Location / Sector</th>
+                            <th>Daily Capacity</th>
+                            <th>Statutory COD Threshold</th>
+                            <th>Operational Status</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="plant : ${plants}">
+                            <td class="font-mono text-muted fw-bold" th:text="${'#PLT-0' + plant.id}">#PLT-01</td>
+                            <td>
+                                <div class="fw-bold text-primary fs-6" th:text="${plant.name}">Central Municipal Effluent Plant</div>
+                                <span class="small text-muted font-mono">Continuous OCEMS Sampling</span>
+                            </td>
+                            <td>
+                                <i class="bi bi-geo-alt-fill text-danger me-1"></i>
+                                <span class="text-dark fw-medium" th:text="${plant.location}">Sector 12, River Basin District</span>
+                            </td>
+                            <td>
+                                <span class="font-mono fw-bold text-dark" th:text="${#numbers.formatDecimal(plant.dailyCapacity, 1, 0)}">100,000</span>
+                                <span class="text-muted small">m³/day</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary-subtle text-dark border px-2 py-1 font-mono">
+                                    <i class="bi bi-shield-check text-primary me-1"></i>
+                                    <strong th:text="${plant.allowedCodLimit}">250.0</strong> mg/L Limit
+                                </span>
+                            </td>
+                            <td>
+                                <span th:if="${plant.status == 'ACTIVE' || plant.status == 'OPERATIONAL'}" class="badge-status badge-status-compliant">
+                                    ACTIVE
+                                </span>
+                                <span th:unless="${plant.status == 'ACTIVE' || plant.status == 'OPERATIONAL'}" class="badge-status badge-status-partial">
+                                    MAINTENANCE
+                                </span>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(plants)}">
+                            <td colspan="6">
+                                <div class="empty-state-box">
+                                    <div class="empty-state-icon"><i class="bi bi-buildings"></i></div>
+                                    <div class="empty-state-title">No Treatment Plants Registered</div>
+                                    <div class="empty-state-desc">Use the "Register Plant" button to add a treatment facility.</div>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal to Register Plant -->
+        <div class="modal fade" id="newPlantModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form th:action="@{/plants}" method="post">
+                        <div class="modal-header">
+                            <h5 class="modal-title fw-bold">Register Treatment Facility</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-scada-label" for="plantName">Plant Facility Name</label>
+                                <input type="text" name="name" id="plantName" class="form-control-scada no-icon" placeholder="e.g. South Sector Biological ETP" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-scada-label" for="plantLocation">Location / District</label>
+                                <input type="text" name="location" id="plantLocation" class="form-control-scada no-icon" placeholder="e.g. Phase 3 Industrial Sector" required>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-scada-label" for="dailyCapacity">Daily Capacity (m³/day)</label>
+                                    <input type="number" step="100" min="0" name="dailyCapacity" id="dailyCapacity" class="form-control-scada no-icon font-mono" placeholder="75000" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-scada-label" for="allowedCodLimit">Statutory COD Limit (mg/L)</label>
+                                    <input type="number" step="0.1" min="0" name="allowedCodLimit" id="allowedCodLimit" class="form-control-scada no-icon font-mono" placeholder="250.0" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-scada-label" for="plantStatus">Operational Status</label>
+                                <select name="status" id="plantStatus" class="form-select-scada no-icon" required>
+                                    <option value="ACTIVE" selected>ACTIVE</option>
+                                    <option value="MAINTENANCE">MAINTENANCE</option>
+                                    <option value="OFFLINE">OFFLINE</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-action-pill btn-action-primary">
+                                <i class="bi bi-check-circle me-1"></i> Save Plant
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <div th:replace="~{fragments/layout :: footer}"></div>
+</div>
+
+<div th:replace="~{fragments/layout :: scripts}"></div>
+
+</body>
+</html>

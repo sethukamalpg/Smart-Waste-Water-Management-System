@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">AquaSCADA - Municipal Wastewater & Effluent Monitoring</title>
+    <!-- Bootstrap 5.3.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Google Fonts: Plus Jakarta Sans, Inter, JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <!-- SCADA Platform CSS -->
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<div th:fragment="navbar(activeTab)">
+    <!-- Mobile Top Header Bar -->
+    <header class="scada-mobile-header">
+        <a class="brand-wrapper" th:href="@{/}">
+            <div class="brand-icon-box">
+                <i class="bi bi-droplet-half"></i>
+            </div>
+            <div>
+                <div class="brand-title-text">AquaSCADA<span class="brand-badge-chip">MUNICIPAL</span></div>
+                <div class="brand-subtext">Effluent Telemetry Grid</div>
+            </div>
+        </a>
+        <div class="d-flex align-items-center gap-2">
+            <span class="live-pulse-dot" title="SCADA Grid Online"></span>
+            <button class="btn btn-sm btn-dark text-white border-secondary" type="button" onclick="toggleScadaSidebar()">
+                <i class="bi bi-list fs-5"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Fixed High-Tech Sidebar -->
+    <aside class="scada-sidebar" id="scadaSidebar">
+        <!-- Brand Header -->
+        <div class="sidebar-brand-header">
+            <a class="brand-wrapper" th:href="@{/}">
+                <div class="brand-icon-box">
+                    <i class="bi bi-droplet-half"></i>
+                </div>
+                <div>
+                    <div class="brand-title-text">AquaSCADA<span class="brand-badge-chip">OCEMS</span></div>
+                    <div class="brand-subtext">Municipal Effluent SCADA</div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Navigation Links -->
+        <div class="sidebar-nav-body">
+            <div class="nav-section-title">Core Operations</div>
+            <a class="sidebar-nav-link" th:classappend="${activeTab == 'dashboard' ? 'active' : ''}" th:href="@{/dashboard}">
+                <i class="bi bi-grid-1x2-fill"></i>
+                <span>Dashboard</span>
+            </a>
+            <a class="sidebar-nav-link" th:classappend="${activeTab == 'telemetry' ? 'active' : ''}" th:href="@{/telemetry}">
+                <i class="bi bi-activity"></i>
+                <span>COD Telemetry</span>
+            </a>
+            <a class="sidebar-nav-link" th:classappend="${activeTab == 'plants' ? 'active' : ''}" th:href="@{/plants}">
+                <i class="bi bi-buildings"></i>
+                <span>Treatment Plants</span>
+            </a>
+            <a class="sidebar-nav-link" th:classappend="${activeTab == 'factories' ? 'active' : ''}" th:href="@{/factories}">
+                <i class="bi bi-diagram-3-fill"></i>
+                <span>Industry & Vendors</span>
+            </a>
+
+            <div class="nav-section-title">Revenue & Procurement</div>
+            <a class="sidebar-nav-link" th:classappend="${activeTab == 'invoices' ? 'active' : ''}" th:href="@{/invoices}">
+                <i class="bi bi-receipt-cutoff"></i>
+                <span>Utility Billing</span>
+            </a>
+            <a class="sidebar-nav-link" th:classappend="${activeTab == 'budget' ? 'active' : ''}" th:href="@{/budget}">
+                <i class="bi bi-pie-chart-fill"></i>
+                <span>Budget Monitoring</span>
+            </a>
+            <a class="sidebar-nav-link" th:classappend="${activeTab == 'procurement' ? 'active' : ''}" th:href="@{/procurement}">
+                <i class="bi bi-cart-check"></i>
+                <span>Chemical Orders</span>
+            </a>
+
+            <div class="nav-section-title">Audit & Analytics</div>
+            <a class="sidebar-nav-link" th:classappend="${activeTab == 'compliance' ? 'active' : ''}" th:href="@{/reports/compliance}">
+                <i class="bi bi-shield-check"></i>
+                <span>Compliance Audit</span>
+            </a>
+            <a class="sidebar-nav-link" th:classappend="${activeTab == 'profit-loss' ? 'active' : ''}" th:href="@{/reports/profit-loss}">
+                <i class="bi bi-graph-up-arrow"></i>
+                <span>Profit & Loss Statement</span>
+            </a>
+        </div>
+
+        <!-- Facility Status Chip in Footer -->
+        <div class="sidebar-status-card">
+            <div class="facility-status-chip">
+                <span class="live-pulse-dot"></span>
+                <div class="facility-status-info">
+                    <div class="facility-status-title">System Online • 2 Plants Active</div>
+                    <div class="facility-status-desc">OCEMS Continuous Grid • ISO 14001</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+</div>
+
+<footer th:fragment="footer" class="scada-footer">
+    <div class="container-fluid d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <span class="fw-bold text-dark">AquaSCADA Municipal Platform</span>
+            <span>&copy; 2026 Municipal Effluent Quality Control Authority.</span>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <span><i class="bi bi-shield-check text-success me-1"></i>ISO 14001 Certified</span>
+            <span><i class="bi bi-broadcast text-info me-1"></i>Real-time Telemetry Grid</span>
+            <span class="badge bg-dark-subtle text-dark border px-2 py-1 font-mono">v2.4-PROD</span>
+        </div>
+    </div>
+</footer>
+
+<div th:fragment="scripts">
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Global SCADA Utilities (Clock, Sidebar Toggle) -->
+    <script>
+        function toggleScadaSidebar() {
+            const sidebar = document.getElementById('scadaSidebar');
+            if (sidebar) {
+                sidebar.classList.toggle('show');
+            }
+        }
+
+        // Live Real-Time Clock for SCADA Headers
+        function updateScadaLiveClock() {
+            const clockEl = document.getElementById('scadaLiveClock');
+            if (clockEl) {
+                const now = new Date();
+                const pad = (n) => String(n).padStart(2, '0');
+                const yr = now.getFullYear();
+                const mo = pad(now.getMonth() + 1);
+                const da = pad(now.getDate());
+                const hr = pad(now.getHours());
+                const mi = pad(now.getMinutes());
+                const se = pad(now.getSeconds());
+                clockEl.textContent = `${yr}-${mo}-${da} ${hr}:${mi}:${se} UTC+05:30`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            updateScadaLiveClock();
+            setInterval(updateScadaLiveClock, 1000);
+        });
+    </script>
+</div>
+
+</body>
+</html>

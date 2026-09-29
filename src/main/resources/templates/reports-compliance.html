@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Environmental Compliance & Effluent Quality Audit - AquaSCADA')}">
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: navbar('compliance')}"></div>
+
+<div class="scada-main-content">
+
+    <!-- Top Utility Header -->
+    <header class="scada-top-header">
+        <ol class="scada-breadcrumb">
+            <li><a th:href="@{/}"><i class="bi bi-house-door me-1"></i>AquaSCADA</a></li>
+            <li>/</li>
+            <li><span>Audit & Compliance</span></li>
+            <li>/</li>
+            <li class="scada-breadcrumb-active">Environmental Quality Audit</li>
+        </ol>
+        <div class="scada-header-actions">
+            <span class="live-timestamp-chip">
+                <i class="bi bi-clock-history text-primary"></i>
+                <span id="scadaLiveClock">2026-09-27 16:45:00</span>
+            </span>
+            <a th:href="@{/telemetry}" class="btn-action-pill btn-action-primary">
+                <i class="bi bi-broadcast"></i> Live Telemetry Stream
+            </a>
+            <a th:href="@{/invoices}" class="btn-action-pill">
+                <i class="bi bi-receipt"></i> Customer Invoices
+            </a>
+            <a th:href="@{/reports/compliance}" class="btn-action-pill" title="Refresh">
+                <i class="bi bi-arrow-repeat"></i>
+            </a>
+        </div>
+    </header>
+
+    <main class="container-fluid px-4 py-4">
+
+        <!-- Page Header -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+            <div>
+                <h1 class="page-title mb-1">Environmental Compliance & Effluent Quality Audit</h1>
+                <p class="page-subtitle mb-0">Continuous Online Effluent Monitoring System (OCEMS) statutory analysis against municipal standards</p>
+            </div>
+            <div>
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 font-mono">
+                    <i class="bi bi-shield-check me-1"></i>ISO 14001 Audit Trail Active
+                </span>
+            </div>
+        </div>
+
+        <!-- 4 Metrics Overview Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-scada-kpi">
+                    <div class="kpi-header">
+                        <div>
+                            <div class="kpi-title">Total Monitored Logs</div>
+                            <div class="kpi-value font-mono text-dark" th:text="${report.totalReadings}">0</div>
+                        </div>
+                        <div class="kpi-icon-box icon-box-primary">
+                            <i class="bi bi-activity"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-footer">
+                        <span>Automated IoT Sensor Samples</span>
+                        <span class="badge bg-light text-dark border font-mono">All Time</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-scada-kpi">
+                    <div class="kpi-header">
+                        <div>
+                            <div class="kpi-title">Compliant Readings</div>
+                            <div class="kpi-value font-mono text-emerald-600" th:text="${report.compliantCount}">0</div>
+                        </div>
+                        <div class="kpi-icon-box icon-box-emerald">
+                            <i class="bi bi-shield-check"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-footer">
+                        <span>Within statutory permissible COD limits</span>
+                        <span class="badge bg-success-subtle text-success font-mono">Passing</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-scada-kpi">
+                    <div class="kpi-header">
+                        <div>
+                            <div class="kpi-title">Non-Compliant Violations</div>
+                            <div class="kpi-value font-mono text-danger" th:text="${report.nonCompliantCount}">0</div>
+                        </div>
+                        <div class="kpi-icon-box icon-box-rose">
+                            <i class="bi bi-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-footer">
+                        <span>Surcharges levied at ₹10.00 / COD unit</span>
+                        <span class="badge bg-danger-subtle text-danger font-mono">Breaches</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-scada-kpi">
+                    <div class="kpi-header">
+                        <div>
+                            <div class="kpi-title">Overall Compliance Health</div>
+                            <div class="kpi-value font-mono text-primary" th:text="${report.complianceRatePercent + '%'}">100%</div>
+                        </div>
+                        <div class="kpi-icon-box icon-box-indigo">
+                            <i class="bi bi-pie-chart"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="progress-scada mb-1">
+                            <div class="progress-bar bg-success" role="progressbar"
+                                 th:style="'width: ' + ${report.complianceRatePercent} + '%'"></div>
+                        </div>
+                        <div class="d-flex justify-content-between small text-muted font-mono">
+                            <span>Compliance Ratio</span>
+                            <span>Target: &gt; 95%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Surcharge Fine Assessment Breakdown Row -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <div class="card h-100 p-4 text-center">
+                    <div class="empty-state-icon mx-auto bg-danger-subtle text-danger mb-3">
+                        <i class="bi bi-currency-rupee fs-3"></i>
+                    </div>
+                    <div class="text-muted small fw-bold text-uppercase mb-1">Total Assessed Penalties</div>
+                    <div class="fs-3 fw-extrabold font-mono text-dark mb-1" th:text="${'₹' + #numbers.formatDecimal(report.totalFinesAssessed, 1, 2)}">₹0.00</div>
+                    <div class="text-muted small">Statutory penalties calculated from excess COD discharge</div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 p-4 text-center">
+                    <div class="empty-state-icon mx-auto bg-success-subtle text-success mb-3">
+                        <i class="bi bi-receipt-cutoff fs-3"></i>
+                    </div>
+                    <div class="text-muted small fw-bold text-uppercase mb-1">Fines Invoiced to Clients</div>
+                    <div class="fs-3 fw-extrabold font-mono text-success mb-1" th:text="${'₹' + #numbers.formatDecimal(report.totalFinesCollected, 1, 2)}">₹0.00</div>
+                    <div class="text-muted small">Attached to customer invoices and posted to general ledger</div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 p-4 text-center">
+                    <div class="empty-state-icon mx-auto bg-warning-subtle text-warning mb-3">
+                        <i class="bi bi-hourglass-split fs-3"></i>
+                    </div>
+                    <div class="text-muted small fw-bold text-uppercase mb-1">Pending Unbilled Penalties</div>
+                    <div class="fs-3 fw-extrabold font-mono text-warning mb-1" th:text="${'₹' + #numbers.formatDecimal(report.pendingFines, 1, 2)}">₹0.00</div>
+                    <div class="text-muted small">Awaiting next billing cycle settlement for invoicing</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Non-Compliant Telemetry Audit Table -->
+        <div class="card">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+                <div>
+                    <h5 class="mb-0 fw-bold text-danger d-flex align-items-center gap-2">
+                        <i class="bi bi-shield-x text-danger"></i> Non-Compliance Violation Audit Trail
+                    </h5>
+                    <p class="text-muted small mb-0">Detailed event audit log for COD discharge statutory threshold breaches</p>
+                </div>
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2 py-1 small font-mono">
+                    <i class="bi bi-exclamation-octagon me-1"></i>Enforcement Log
+                </span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table-scada">
+                        <thead>
+                        <tr>
+                            <th>Telemetry ID</th>
+                            <th>Industrial Discharger</th>
+                            <th>Receiving Plant</th>
+                            <th>Timestamp</th>
+                            <th>Actual COD</th>
+                            <th>Permissible Limit</th>
+                            <th>Excess COD</th>
+                            <th>Statutory Penalty</th>
+                            <th>Invoicing Status</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="v : ${violations}">
+                            <td class="font-mono text-muted fw-bold" th:text="${'#LOG-0' + v.id}">#LOG-01</td>
+                            <td>
+                                <div class="fw-bold text-dark" th:text="${v.factory.name}">Factory</div>
+                                <span class="small text-muted font-mono" th:text="${v.factory.city}">Metro City</span>
+                            </td>
+                            <td>
+                                <span class="small fw-semibold text-secondary" th:text="${v.treatmentPlant.name}">Plant</span>
+                            </td>
+                            <td class="font-mono text-muted small" th:text="${#temporals.format(v.readingDateTime, 'yyyy-MM-dd HH:mm')}">2026-09-25 14:00</td>
+                            <td class="font-mono text-danger fw-bold" th:text="${#numbers.formatDecimal(v.codValue, 1, 1) + ' mg/L'}">350.0 mg/L</td>
+                            <td class="font-mono text-muted small" th:text="${v.allowedCodLimit + ' mg/L'}">250.0 mg/L</td>
+                            <td>
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle font-mono fw-bold"
+                                      th:text="${'+' + #numbers.formatDecimal(v.codValue - v.allowedCodLimit, 1, 1) + ' mg/L'}">+100.0 mg/L</span>
+                            </td>
+                            <td>
+                                <span class="chip-surcharge-fine font-mono fs-6"
+                                      th:text="${'₹' + #numbers.formatDecimal(v.surchargeAmount, 1, 2)}">₹1,000.00</span>
+                            </td>
+                            <td>
+                                <span th:if="${v.billed}" class="badge bg-secondary-subtle text-dark border px-2 py-1 small font-mono">
+                                    <i class="bi bi-receipt me-1"></i>Invoiced
+                                </span>
+                                <span th:unless="${v.billed}" class="badge-status badge-status-noncompliant">
+                                    Pending Invoicing
+                                </span>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(violations)}">
+                            <td colspan="9">
+                                <div class="empty-state-box">
+                                    <div class="empty-state-icon text-success"><i class="bi bi-shield-check"></i></div>
+                                    <div class="empty-state-title text-success">Zero Regulatory Violations</div>
+                                    <div class="empty-state-desc">All monitored industrial effluent discharges are within permissible statutory COD limits.</div>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <div th:replace="~{fragments/layout :: footer}"></div>
+</div>
+
+<div th:replace="~{fragments/layout :: scripts}"></div>
+
+</body>
+</html>
